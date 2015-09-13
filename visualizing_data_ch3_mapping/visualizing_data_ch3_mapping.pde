@@ -5,8 +5,11 @@ Table dataTable; //Contains data that we draw
 Table nameTable; //State abbrevs and their full names
 
 int rowCount; //Number of rows in dataTable
-float dataMin = MAX_FLOAT; //Smallest number in data
-float dataMax = MIN_FLOAT; //Largest number in data
+//float dataMin = MAX_FLOAT; //Smallest number in data
+//float dataMax = MIN_FLOAT; //Largest number in data
+float dataMin = -10;
+float dataMax = 10;
+
 
 float closestDist;
 String closestText;
@@ -29,14 +32,14 @@ void setup(){
   rowCount = dataTable.getRowCount();
   
   //Find max and min values in data
-  for (int row = 0; row < rowCount; row++){
-    float value = dataTable.getFloat(row, 1); //column 1
-    if (value > dataMax) dataMax = value;
-    if (value < dataMin) dataMin = value;
-  }
+  //for (int row = 0; row < rowCount; row++){
+  //  float value = dataTable.getFloat(row, 1); //column 1
+  //  if (value > dataMax) dataMax = value;
+  //  if (value < dataMin) dataMin = value;
+  //}
   
   //Load font for tooltips from file
-  PFont font = loadFont("Courier-Bold-12.vlw");
+  PFont font = loadFont("Courier-12.vlw");
   textFont(font); //Set current font
   
   nameTable = loadTable("names.tsv", "tsv");
@@ -107,4 +110,22 @@ void drawData(float x, float y, float value, String abbrev, String name){
    closestTextY = y - radius - 4;
  }  
   
+}
+
+//What happens when a key is pressed
+void keyPressed(){
+ if (key == ' '){ //Spacebar
+   updateTable();
+ }
+}
+
+//Randomise data in dataTable
+void updateTable(){
+   for (int row = 0; row < rowCount; row++){
+    float rand = random(dataMin, dataMax);
+    dataTable.setFloat(row, 1, rand); //Set col 1 in row to random value
+   }
+   
+   //API issue??
+   //dataTable = new Table("http://benfry.com/writing/map/random.cgi");
 }
