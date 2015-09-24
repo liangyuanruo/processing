@@ -65,6 +65,7 @@ void draw(){
   drawAxisLabels();
   drawVolumeLabels();
   drawYearLabels();
+  drawDataLine(currentColumn);
   drawDataPoints(currentColumn);
 }
 
@@ -99,6 +100,24 @@ void drawDataPoints(int col){
        
      }
   }
+}
+
+//Draw the data as a series of lines
+void drawDataLine(int col){
+  noFill();
+  beginShape();
+  strokeWeight(2);
+  stroke(#5679C1,128); //transparent
+  for (int row = 0; row < rowCount; row++){
+     if (data.isValid(row, col)){
+       float value = data.getFloat(row, col);
+       float x = map(years[row], yearMin, yearMax, plotX1, plotX2);
+       float y = map(value, dataMin, dataMax, plotY2, plotY1);
+       vertex(x,y);
+       
+     }
+  }
+  endShape();
 }
 
 void drawYearLabels(){
