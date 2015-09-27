@@ -1,4 +1,5 @@
-//Data
+//This code creates a time series line chart
+
 FloatTable data;
 int rowCount;
 float dataMin, dataMax;
@@ -14,8 +15,12 @@ float plotX1, plotY1;
 float plotX2, plotY2;
 float labelX, labelY;
 
+//Interactivity
 int currentColumn = 0;
 int columnCount;
+float[] tabLeft, tabRight;
+float tabTop, tabBottom;
+float tabPad = 10;
 
 PFont plotFont;
 
@@ -65,8 +70,11 @@ void draw(){
   drawAxisLabels();
   drawVolumeLabels();
   drawYearLabels();
-  drawDataLine(currentColumn);
-  drawDataPoints(currentColumn);
+  
+  //drawDataLine(currentColumn);
+  //drawDataCurve(currentColumn);
+  drawDataArea(currentColumn);
+  drawDataHighlight(currentColumn);
 }
 
 void drawTitle(){
@@ -88,16 +96,24 @@ void drawAxisLabels(){
 
 
 //Draw the data as a series of points
-void drawDataPoints(int col){
-  strokeWeight(5);
-  stroke(#5679C1);
+void drawDataHighlight(int col){
+
   for (int row = 0; row < rowCount; row++){
      if (data.isValid(row, col)){
        float value = data.getFloat(row, col);
        float x = map(years[row], yearMin, yearMax, plotX1, plotX2);
        float y = map(value, dataMin, dataMax, plotY2, plotY1);
-       point(x,y);
+       strokeWeight(5);
+       stroke(#5679C1);
+       point(x, y);
        
+       //Mouseover highlight + text
+       if (dist(mouseX, mouseY, x, y) < 3){
+          strokeWeight(10);
+          point(x, y);
+          fill(0); textSize(10); textAlign(CENTER);
+          text(nf(value, 0, 2) + " (" + years[row] + ")", x, y-8);
+       }
      }
   }
 }
@@ -118,6 +134,48 @@ void drawDataLine(int col){
      }
   }
   endShape();
+}
+
+//Draw the data as a series of lines
+void drawDataCurve(int col){
+  noFill();
+  beginShape();
+  strokeWeight(2);
+  stroke(#5679C1,128); //transparent
+  for (int row = 0; row < rowCount; row++){
+     if (data.isValid(row, col)){
+       float value = data.getFloat(row, col);
+       float x = map(years[row], yearMin, yearMax, plotX1, plotX2);
+       float y = map(value, dataMin, dataMax, plotY2, plotY1);
+       curveVertex(x,y);
+       
+       //Double curve points for start and stop
+       if ( row == 0 || row == row-1 ) curveVertex(x, y);
+     }
+     
+  }
+  endShape();
+}
+
+//Draw the data as an area chart
+void drawDataArea(int col){
+ fill(#5679C1,128); //transparent
+  beginShape();
+  for (int row = 0; row < rowCount; row++){
+     if (data.isValid(row, col)){
+       float value = data.getFloat(row, col);
+       float x = map(years[row], yearMin, yearMax, plotX1, plotX2);
+       float y = map(value, dataMin, dataMax, plotY2, plotY1);
+       vertex(x,y);
+       
+       //Double curve points for start and stop
+       if ( row == 0 || row == row-1 ) vertex(x, y);
+     }
+  }
+  //Draw lower left & lower right corners
+  vertex(plotX2, plotY2);
+  vertex(plotX1, plotY2);
+  endShape(CLOSE);
 }
 
 void drawYearLabels(){
