@@ -10,6 +10,8 @@ int yearMin, yearMax;
 int[] years;
 int yearInterval = 10; //For x axis
 
+Integrator interpolators[];
+
 //Plotting bounds
 float plotX1, plotY1;
 float plotX2, plotY2;
@@ -42,6 +44,13 @@ void setup(){
   dataMin = 0;
   dataMax = ceil(data.getTableMax() / volumeInterval) * volumeInterval;
   
+  interpolators = new Integrator[rowCount];
+  for (int row = 0; row < rowCount; row++){
+     float initialValue = data.getFloat(row, 0);
+     interpolators[row] = new Integrator(initialValue);
+     interpolators[row].attraction = 0.1; //Set lower than default (0.2)
+  }
+  
   /*Corners of plotted time series*/
   plotX1 = 120;
   plotX2 = width - 80;
@@ -66,10 +75,15 @@ void draw(){
   noStroke();
   rect(plotX1, plotY1, plotX2, plotY2);
   
-  drawTitle();
+  //drawTitle();
+  drawTitleTabs();
   drawAxisLabels();
   drawVolumeLabels();
   drawYearLabels();
+  
+  //Update the Integrators
+  for (int row = 0; row < rowCount; row++)
+    interpolators[row].update();
   
   //drawDataLine(currentColumn);
   //drawDataCurve(currentColumn);
@@ -82,6 +96,44 @@ void drawTitle(){
   textSize(20); textAlign(LEFT);
   String title = data.getColumnName(currentColumn);
   text(title, plotX1, plotY1 - 25);
+}
+
+void drawTitleTabs(){
+ 
+  rectMode(CORNERS);
+  noStroke();
+  textSize(20);
+  textAlign(LEFT);
+  
+  //On first use of this method, allocate space for an array
+  //to store the values for the left and right edges of the tabs
+  if (tabLeft == null){
+    tabLeft = new float[columnCount];
+    tabRight = new float[columnCount];
+  }
+  
+  float runningX = plotX1;
+  tabTop = plotY1 - textAscent() - 15;
+  tabBottom = plotY1;
+  
+  for (int col = 0; col < columnCount; col++){
+     
+    String title = data.getColumnName(col);
+    tabLeft[col] = runningX;
+    float titleWidth = textWidth(title);
+    tabRight[col] = tabLeft[col] + tabPad + titleWidth + tabPad;
+    
+    //If current tab selected, set background white, else use pale grey
+    fill(col == currentColumn ? 255 : 224);
+    rect(tabLeft[col], tabTop, tabRight[col], tabBottom);
+    
+    //If current tab selected, use black as text, else use dark grey
+    fill(col == currentColumn ? 0 : 64);
+    text(title, runningX + tabPad, plotY1 - 10);
+    
+    runningX = tabRight[col];
+  }
+  
 }
 
 void drawAxisLabels(){
@@ -100,7 +152,9 @@ void drawDataHighlight(int col){
 
   for (int row = 0; row < rowCount; row++){
      if (data.isValid(row, col)){
-       float value = data.getFloat(row, col);
+       //float value = data.getFloat(row, col);
+       float value = interpolators[row].value;
+
        float x = map(years[row], yearMin, yearMax, plotX1, plotX2);
        float y = map(value, dataMin, dataMax, plotY2, plotY1);
        strokeWeight(5);
@@ -163,7 +217,8 @@ void drawDataArea(int col){
   beginShape();
   for (int row = 0; row < rowCount; row++){
      if (data.isValid(row, col)){
-       float value = data.getFloat(row, col);
+       //float value = data.getFloat(row, col);
+       float value = interpolators[row].value;
        float x = map(years[row], yearMin, yearMax, plotX1, plotX2);
        float y = map(value, dataMin, dataMax, plotY2, plotY1);
        vertex(x,y);
@@ -217,13 +272,22 @@ void drawVolumeLabels(){
     }
   }
 }
-  
-void keyPressed(){
-  if (key =='['){
-    currentColumn--;
-    if (currentColumn < 0) currentColumn = columnCount - 1;
-  } else if (key == ']'){
-    currentColumn++;
-    if (currentColumn == columnCount) currentColumn = 0;
-  }
+ 
+void mousePressed(){
+   //User selecting panes
+   if (mouseY > tabTop && mouseY < tabBottom){ //If click was between top/bottom of pane
+      for (int col = 0; col < columnCount; col++){ //Check each pane in turn
+         if (mouseX > tabLeft[col] && mouseX < tabRight[col]){ //If click between left/right of pane
+            setColumn(col); 
+         }
+      }
+   }
+}
+
+void setColumn(int col){
+   if (col != currentColumn) currentColumn = col;
+   
+   for (int row = 0; row < rowCount; row++){
+      interpolators[row].target( data.getFloat(row,col) ); 
+   }
 }
